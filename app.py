@@ -4,6 +4,7 @@ import time
 from PIL import Image
 from langchain_groq import ChatGroq
 from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
@@ -19,8 +20,10 @@ st.image(banner_resized)
 st.title("📚 Chat with Your PDF Documents")
 
 # Load API keys from environment
-os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY', '')
-os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY', '')
+os.environ['GROQ_API_KEY'] = st.secrets.get("GROQ_API_KEY", "")
+#os.environ['OPENAI_API_KEY'] = st.secrets.get("OPENAI_API_KEY", "")
+#os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY', '')
+#os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY', '')
 
 if not os.environ['GROQ_API_KEY'] or not os.environ['OPENAI_API_KEY']:
     st.error("🚨 Please set your GROQ_API_KEY and OPENAI_API_KEY environment variables.")
@@ -46,7 +49,7 @@ prompt = ChatPromptTemplate.from_template(
 # Vector database loading & caching
 @st.cache_resource(show_spinner="🔄 Creating vector store from documents...")
 def load_embeddings():
-    embeddings = OpenAIEmbeddings()
+    embeddings = OllamaEmbeddings()
     loader = PyPDFDirectoryLoader("documents")
     docs = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
