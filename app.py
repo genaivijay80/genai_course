@@ -4,7 +4,6 @@ import time
 from PIL import Image
 from langchain_groq import ChatGroq
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.embeddings import OllamaEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
@@ -12,27 +11,29 @@ from langchain.chains import create_retrieval_chain
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 
-# 🖼️ Display banner image with custom width and height
-banner = Image.open("genai_images.jpg")  # Updated filename here
-banner_resized = banner.resize((1200, 250))  # Adjust dimensions as needed
+# 🖼️ Display banner image
+banner = Image.open("genai_images.jpg")
+banner_resized = banner.resize((1200, 250))
 st.image(banner_resized)
 
 st.title("📚 Chat with Your PDF Documents")
 
-# Load API keys from environment
-#os.environ['GROQ_API_KEY'] = st.secrets.get("GROQ_API_KEY")
-#os.environ['OPENAI_API_KEY'] = st.secrets.get("OPENAI_API_KEY")
-os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
-os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+# Load API keys from secrets or environment
+openai_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+groq_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
 
-if not os.environ['GROQ_API_KEY'] or not os.environ['OPENAI_API_KEY']:
-    st.error("🚨 Please set your GROQ_API_KEY and OPENAI_API_KEY environment variables.")
+# Set them
+os.environ["OPENAI_API_KEY"] = openai_key or ""
+os.environ["GROQ_API_KEY"] = groq_key or ""
+
+if not openai_key or not groq_key:
+    st.error("🚨 Please set your GROQ_API_KEY and OPENAI_API_KEY in secrets or environment.")
     st.stop()
 
 # Initialize LLM
 llm = ChatGroq(model_name="Llama3-8b-8192")
 
-# Prompt template (must include 'context')
+# Prompt
 prompt = ChatPromptTemplate.from_template(
     """
     You are an expert assistant. Use the following context to answer the question accurately.
@@ -46,29 +47,28 @@ prompt = ChatPromptTemplate.from_template(
     """
 )
 
-# Vector database loading & caching
+# Load documents and create vector store
 @st.cache_resource(show_spinner="🔄 Creating vector store from documents...")
 def load_embeddings():
-    embeddings = OllamaEmbeddings()
+    embeddings = OpenAIEmbeddings()
     loader = PyPDFDirectoryLoader("documents")
     docs = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     final_split_doc = text_splitter.split_documents(docs)
     return FAISS.from_documents(final_split_doc, embeddings)
 
-# Automatically load vector store
+# Load vector store
 vector_store = load_embeddings()
 
-# Initialize session state for chat history
+# Chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# User input
+# User prompt
 user_prompt = st.text_input("💬 Ask a question about your PDFs")
 
-# Q&A logic
+# Q&A
 if user_prompt:
-    # Save user prompt to chat history
     st.session_state.chat_history.append(f"**You:** {user_prompt}")
 
     doc_chain = create_stuff_documents_chain(llm, prompt)
@@ -79,10 +79,8 @@ if user_prompt:
     response = retrieval_chain.invoke({'input': user_prompt})
     duration = time.process_time() - start
 
-    # Save AI response to chat history
     ai_response = response.get("answer", "No answer found.")
     st.session_state.chat_history.append(f"**AI:** {ai_response}")
 
-    # Display chat history
     for message in st.session_state.chat_history:
         st.write(message)
