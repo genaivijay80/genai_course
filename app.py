@@ -20,10 +20,10 @@ st.image(banner_resized)
 st.title("📚 Chat with Your PDF Documents")
 
 # Load API keys from environment
-os.environ['GROQ_API_KEY'] = st.secrets.get("GROQ_API_KEY")
-os.environ['OPENAI_API_KEY'] = st.secrets.get("OPENAI_API_KEY")
-#os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
-#os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+#os.environ['GROQ_API_KEY'] = st.secrets.get("GROQ_API_KEY")
+#os.environ['OPENAI_API_KEY'] = st.secrets.get("OPENAI_API_KEY")
+os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY')
+os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
 
 if not os.environ['GROQ_API_KEY'] or not os.environ['OPENAI_API_KEY']:
     st.error("🚨 Please set your GROQ_API_KEY and OPENAI_API_KEY environment variables.")
